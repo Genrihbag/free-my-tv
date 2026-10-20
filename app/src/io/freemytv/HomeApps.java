@@ -197,27 +197,14 @@ final class HomeApps {
         return keys != null ? keys : TOP_DEFAULT;
     }
 
-    /**
-     * The top buttons, ready to draw: the built-in ones and the apps that are still installed. `extract`: also lifts
-     * the logos that are not on disk yet (slow: background only); without it, those apps show their initials until the
-     * next load.
-     */
+    /** The top buttons, ready to draw (`extract` is unused now that they're all built in; kept for the callers). */
     static List<Item> topButtons(Context c, boolean extract) {
-        PackageManager pm = c.getPackageManager();
         List<Item> items = new ArrayList<>();
         for (String key : topButtonKeys()) {
             if (items.size() >= MAX_TOP) break;
+            // Only the built-in buttons: the apps belong on the shelf (an app picked by an older version is skipped).
             Item builtIn = topBuiltIn(key);
-            if (builtIn != null) {
-                items.add(builtIn);
-                continue;
-            }
-            Intent launch = launchIntent(pm, key);
-            if (launch == null) continue;   // uninstalled since it was picked
-            ResolveInfo ri = pm.resolveActivity(launch, 0);
-            Item it = app(key, ri != null ? String.valueOf(ri.loadLabel(pm)) : key);
-            topMark(c, it, extract);
-            items.add(it);
+            if (builtIn != null) items.add(builtIn);
         }
         return items;
     }
@@ -232,13 +219,12 @@ final class HomeApps {
         }
     }
 
-    /** What can go in the top buttons, as {key, name}: the built-in ones first, then the apps (as for the shelf). */
+    /** What can go in the top buttons, as {key, name}: the built-in ones (apps go on the shelf). */
     static List<String[]> topCandidates(Context c) {
         List<String[]> out = new ArrayList<>();
         for (String key : TOP_DEFAULT) out.add(new String[] {key, topBuiltIn(key).label});
         // Not a default: offered only where the TV has a screen for it.
         if (bluetooth(c) != null) out.add(new String[] {TOP_BLUETOOTH, topBuiltIn(TOP_BLUETOOTH).label});
-        out.addAll(shelfCandidates(c));
         return out;
     }
 
