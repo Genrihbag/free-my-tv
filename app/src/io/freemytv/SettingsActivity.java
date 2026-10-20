@@ -587,7 +587,9 @@ public class SettingsActivity extends Activity {
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                 case KeyEvent.KEYCODE_DPAD_RIGHT:
                     if (down && screen == SHELF_EDIT) {
-                        moveShelfApp(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
+                        // The top buttons start at the right edge: → moves one toward it, earlier in the list.
+                        int dir = e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1;
+                        moveShelfApp(editingTop ? -dir : dir);
                         invalidate();
                     } else if (down && screen == HOME_SETTINGS) {
                         adjust(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);

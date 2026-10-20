@@ -35,6 +35,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -460,10 +461,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         motionDirty = true;
     }
 
-    /** The round buttons at the top right (Settings > Top Buttons), with their names in the current language. */
+    /**
+     * The round buttons at the top right (Settings > Top Buttons), with their names in the current language. The list
+     * starts at the corner; lightButtons is in screen order, left to right, like the rest of the top row.
+     */
     private void setLightButtons(List<HomeApps.Item> list) {
         lightButtons.clear();
         lightButtons.addAll(list);
+        Collections.reverse(lightButtons);
         if (zone == Z_TOP && topIndex >= 3 + lightButtons.size()) {
             topIndex = 2 + lightButtons.size();
             if (topIndex < 3 && !picksOn()) zone = Z_SHELF;   // without the picks the tabs can't hold focus

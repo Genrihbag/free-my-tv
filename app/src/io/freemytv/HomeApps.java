@@ -186,12 +186,13 @@ final class HomeApps {
     // MARK: - Top buttons (the round ones at the top right)
 
     static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings", TOP_BLUETOOTH = "bluetooth";
-    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_SETTINGS));
+    /** From the corner leftward (the first one sits at the right edge): Settings, HDMI Inputs, Live TV. */
+    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_SETTINGS, TOP_INPUTS, TOP_LIVE));
     static final int MAX_TOP = 5;
     /** Largest side, in pixels, of a top button's mark (drawn at up to ~50 px; mipmaps take it down smoothly). */
     private static final int MARK_PX = 160;
 
-    /** The keys of the top buttons, in order (Settings > Top Buttons; by default Live TV, HDMI Inputs, Settings). */
+    /** The keys of the top buttons, from the corner leftward (Settings > Top Buttons; TOP_DEFAULT until edited). */
     static List<String> topButtonKeys() {
         List<String> keys = Prefs.topButtons();
         return keys != null ? keys : TOP_DEFAULT;
