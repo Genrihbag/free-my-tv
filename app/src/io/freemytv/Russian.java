@@ -28,6 +28,9 @@ final class Russian {
             case "Crypto": return "Криптовалюты";
             case "24h change": return "изменение за 24 ч";
             case "For You": return "Для вас";
+            case "Top Buttons": return "Верхние кнопки";
+            case "in the top buttons, place ": return "в верхних кнопках, место ";
+            case "not in the top buttons": return "не в верхних кнопках";
             case "Couldn't open ": return "Не удалось открыть ";
             case " of ": return " из ";
             case ", tab ": return ", вкладка ";
@@ -165,6 +168,12 @@ final class Russian {
                 String[] prefixes = {"Couldn't check Free My TV: ", "Couldn't turn on Free My TV: ",
                         "Couldn't go back to the original: ", "Original mode, but I couldn't turn back on: "};
                 for (String p : prefixes) if (english.startsWith(p)) return text(p) + text(english.substring(p.length()));
+                String buttonsPrefix = "OK adds or removes a button (up to ";
+                String buttonsSuffix = "). ← → change the order.";
+                if (english.startsWith(buttonsPrefix) && english.endsWith(buttonsSuffix)) {
+                    String n = english.substring(buttonsPrefix.length(), english.length() - buttonsSuffix.length());
+                    return "OK — добавить или убрать кнопку (до " + n + "). ← → — изменить порядок.";
+                }
                 String prefix = "Free My TV is on: new home screen and screensaver, ";
                 if (english.startsWith(prefix) && english.endsWith(" apps turned off.")) {
                     String n = english.substring(prefix.length(), english.length() - " apps turned off.".length());
