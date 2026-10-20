@@ -57,6 +57,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The "Bluetooth" button: the TV's remotes and accessories page, or its Bluetooth settings (see bluetooth()). */
+    static final int BLUETOOTH = 8;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -183,7 +185,7 @@ final class HomeApps {
 
     // MARK: - Top buttons (the round ones at the top right)
 
-    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings";
+    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings", TOP_BLUETOOTH = "bluetooth";
     static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_SETTINGS));
     static final int MAX_TOP = 5;
     /** Largest side, in pixels, of a top button's mark (drawn at up to ~50 px; mipmaps take it down smoothly). */
@@ -225,6 +227,7 @@ final class HomeApps {
             case TOP_LIVE: return action(LIVE_TV, TOP_LIVE, Ui.tr("TV aberta", "Live TV"), "live_tv");
             case TOP_INPUTS: return action(INPUTS, TOP_INPUTS, Ui.tr("Entradas HDMI", "HDMI Inputs"), "hdmi");
             case TOP_SETTINGS: return action(SETTINGS, TOP_SETTINGS, Ui.tr("Configurações", "Settings"), "settings");
+            case TOP_BLUETOOTH: return action(BLUETOOTH, TOP_BLUETOOTH, "Bluetooth", "bluetooth");
             default: return null;
         }
     }
@@ -233,6 +236,8 @@ final class HomeApps {
     static List<String[]> topCandidates(Context c) {
         List<String[]> out = new ArrayList<>();
         for (String key : TOP_DEFAULT) out.add(new String[] {key, topBuiltIn(key).label});
+        // Not a default: offered only where the TV has a screen for it.
+        if (bluetooth(c) != null) out.add(new String[] {TOP_BLUETOOTH, topBuiltIn(TOP_BLUETOOTH).label});
         out.addAll(shelfCandidates(c));
         return out;
     }
@@ -548,6 +553,13 @@ final class HomeApps {
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
                 break;
+            case BLUETOOTH:
+                intent = bluetooth(a);
+                if (intent != null && SLICE_SETTINGS.equals(intent.getAction())) {
+                    HomeMode.openAccessories(a);
+                    return true;
+                }
+                break;
             default:
                 return false;
         }
@@ -560,6 +572,28 @@ final class HomeApps {
             AppLog.w("couldn't open " + it.label + ": " + e.getMessage());
             return false;
         }
+    }
+
+    /** TV Settings' slice behind Settings → Remotes & Accessories (Android TV 12+, Google TV). */
+    static final String ACCESSORIES_SLICES = "com.android.tv.settings.accessories.sliceprovider";
+    static final String SLICE_SETTINGS = "android.settings.SLICE_SETTINGS";
+
+    /**
+     * Bluetooth: Android TV and Google TV have no Bluetooth settings screen (ACTION_BLUETOOTH_SETTINGS resolves to
+     * nothing there). Their Remotes & Accessories page, with the paired devices and "Pair accessory", is a slice that
+     * TV Settings' SliceActivity shows, only to callers with WRITE_SECURE_SETTINGS: open() asks the TV's ADB to start it
+     * (HomeMode.openAccessories). Its pairing search, CONNECT_INPUT, needs BLUETOOTH_CONNECT, so it's no way around.
+     * Other devices get the standard Bluetooth settings. Null with neither.
+     */
+    static Intent bluetooth(Context c) {
+        PackageManager pm = c.getPackageManager();
+        if (pm.resolveContentProvider(ACCESSORIES_SLICES, 0) != null) {
+            Intent page = new Intent(SLICE_SETTINGS)
+                    .putExtra("slice_uri", "content://" + ACCESSORIES_SLICES + "/general");
+            if (page.resolveActivity(pm) != null) return page;
+        }
+        Intent settings = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+        return settings.resolveActivity(pm) != null ? settings : null;
     }
 
     /**

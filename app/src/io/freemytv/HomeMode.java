@@ -1,6 +1,8 @@
 package io.freemytv;
 
 import android.content.Context;
+import android.content.Intent;
+import android.provider.Settings;
 import android.os.Build;
 import android.os.SystemClock;
 
@@ -134,6 +136,27 @@ final class HomeMode {
      */
     static void ensureRemoteService(Context c, long delayMs) {
         if (RemoteKeys.supported()) ModeJob.schedule(c, ModeJob.REMOTE, null, delayMs);
+    }
+
+    /**
+     * The Bluetooth top button on Android TV and Google TV: TV Settings shows its Remotes & Accessories page only to
+     * callers with WRITE_SECURE_SETTINGS, which the shell has, so the TV's ADB starts it (a fixed command, off the UI
+     * thread). Without ADB (debugging off), the TV's settings open instead.
+     */
+    static void openAccessories(Context c) {
+        Context app = c.getApplicationContext();
+        new Thread(() -> {
+            try (Adb adb = Adb.connect(app, 10_000, null)) {
+                adb.shell("am start -a " + HomeApps.SLICE_SETTINGS + " --es slice_uri content://"
+                        + HomeApps.ACCESSORIES_SLICES + "/general");
+            } catch (IOException e) {
+                AppLog.w("Remotes & Accessories through ADB: " + e.getMessage());
+                try {
+                    app.startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (RuntimeException ignored) {
+                }
+            }
+        }, "accessories").start();
     }
 
     static void ensureRemoteServiceNow(Context app) {
