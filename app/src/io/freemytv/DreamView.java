@@ -144,6 +144,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         recs = Recs.get(c);
         Shaders.dream(scene.palette);
         scene.setMotion(0.4f, 0.32f);
+        scene.useGlow();   // the same soft glows as the home screen
         scene.applyPalette();
         content.setUseCompositingLayer(true, null);
         try {
@@ -716,11 +717,11 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         }
     }
 
-    // MARK: - Without photos: the big clock over the aurora
+    // MARK: - Without photos: the big clock over the glows
 
     private void drawFallback(Canvas canvas, long up, float alpha) {
         float t = (up - startedAt) / 1000f;
-        if (up - lastSky >= 100) {
+        if (up - lastSky >= 33) {   // 30 steps a second: the glows drift smoothly
             lastSky = up;
             scene.advance(timeOffset + t);
         }

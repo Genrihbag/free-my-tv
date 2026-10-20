@@ -131,6 +131,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // Night look (like Apple's "Automatic" appearance): darker from sunset to sunrise, with a 2 s transition.
     private static final long NIGHT_MS = 2000;
+    // Without the picks the background is soft drifting glows (Shaders.GLOW), redrawn 30 times a second: a ¼-scale
+    // layer and a few exp() a pixel. The glass doesn't read them (redrawing it on every step made the TV stutter): it
+    // takes the palette's tone instead, which changes only with the sun.
+    private static final long GLOW_STEP_MS = 33;
+    private final long glowStart = SystemClock.uptimeMillis();
+    private long glowAt;
     private boolean nightTarget;
     private float night, nightFrom;     // 0 = day, 1 = night
     private long nightAt;
@@ -383,6 +389,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             cardRects[i] = new RectF();
         }
         setLightButtons(HomeApps.topButtons(a, false));
+        if (glowOn()) scene.useGlow();
         recs.setLight(true);
         checkNight(false);
         sheetLayer.setVisibility(INVISIBLE);
@@ -659,6 +666,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean heroFading = tickHeroFade(up);
         boolean bgFading = tickBackgroundFade(up);
         boolean nightMoving = tickNight(up);
+        if (glowOn()) stepGlow(up);
 
         if (drawerMoving || sheetMoving || motionDirty) updateMotion();
         // Opening and closing the drawer only moves the cached layers: redrawing the glass on every frame made the TV
@@ -690,7 +698,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 || drawerOpen || drawer.value > 0.001f || toast != null || !toasts.isEmpty();
         idle = !busy;
         if (busy) Choreographer.getInstance().postFrameCallback(this);
-        else Choreographer.getInstance().postFrameCallbackDelayed(this, 1000);
+        else Choreographer.getInstance().postFrameCallbackDelayed(this, glowOn() ? GLOW_STEP_MS : 1000);
     }
 
     private void wake() {
@@ -748,6 +756,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         HomeData.Weather wx = data.weather;
         Shaders.sky(scene.palette, System.currentTimeMillis(), wx.sunrise, wx.sunset);
         scene.applyPalette();
+        if (glowOn() && bgTo == null && bgFadeAt == 0) {
+            neutralGlass();   // the glass's tone follows the palette
+            platter.invalidate();
+            status.invalidate();
+            drawerLayer.invalidate();
+        }
     }
 
     // MARK: - Recommendations: hero and background
@@ -855,9 +869,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         return glassNight;
     }
 
-    /** No photo: the glass reads the background's own gray (not Scene's default aurora, which isn't on screen). */
+    /** No photo: the glass reads a flat tone, the glows' (from the palette) or else the gradient's own gray. */
     private void neutralGlass() {
-        int color = blend(0xFFEBEBF0, 0xFF141416, night);
+        int color = glowOn() ? blend(blend(scene.palette.color(0), scene.palette.color(1), 0.35f), 0xFF000000, 0.3f)
+                : blend(0xFFEBEBF0, 0xFF141416, night);
         java.util.Arrays.fill(neutralFrostPx, color);
         java.util.Arrays.fill(neutralGlassPx, color);
         scene.setFrost(neutralFrostPx);
@@ -878,7 +893,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Day or night right now (from the sun at your location); `animate`: with the transition. */
     private void checkNight(boolean animate) {
-        boolean want = data.isNight(System.currentTimeMillis());
+        // On the glows only white text reads (as in Settings), so they keep the night look; their colors follow the sun.
+        boolean want = glowOn() || data.isNight(System.currentTimeMillis());
         if (want == nightTarget) return;
         nightTarget = want;
         if (animate && running) {
@@ -2501,6 +2517,17 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         long up = SystemClock.uptimeMillis();
         float e = bgFadeAt == 0 ? 1 : fadeEase(bgFadeAt, up);
         boolean fading = bgFadeAt != 0;
+        if (glowOn() && bgTo == null && bgFrom == null) {
+            // Dithered in its shader, so the dark gradient doesn't break into bands; the drawer's veil goes on top.
+            scene.drawBackground(c);
+            float veilAmount = tone(0.32f, 0.42f) * Ui.clamp(drawer.value);
+            if (veilAmount > 0.002f) {
+                fill.setShader(null);
+                fill.setColor(Ui.alpha(blend(0xFFFFFFFF, 0xFF000000, night), veilAmount));
+                c.drawRect(screen, fill);
+            }
+            return;
+        }
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
         if (bgTo == null || (fading && bgFrom == null)) {
@@ -2574,6 +2601,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private boolean picksOn() {
         return Recs.hasKey(getContext());
+    }
+
+    /** The drifting glows are the background whenever there are no picks (and so no photo). */
+    private boolean glowOn() {
+        return !picksOn();
+    }
+
+    /** Moves the glows on (see GLOW_STEP_MS): only the background layer is redrawn. */
+    private void stepGlow(long up) {
+        if (up - glowAt < GLOW_STEP_MS) return;
+        glowAt = up;
+        scene.advance((up - glowStart) / 1000f);
+        sky.invalidate();
     }
 
     private void drawClock(Canvas c) {

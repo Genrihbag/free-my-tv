@@ -76,6 +76,48 @@ final class Shaders {
         "}\n";
 
     /**
+     * The home screen without picks: three soft glows in the palette's colors drifting over its darkest tone, the
+     * aurora's shading on top (darker under the clock and the shelf). No noise to hash, so nothing for a TV GPU's lower
+     * precision to break into hard edges, and a few exp() a pixel. Dithered by a small hash of the pixel, kept small
+     * for the same reason. Same uniforms as the aurora, so Scene drives it the same way.
+     */
+    static final String GLOW =
+        "uniform float2 res;\n" +
+        "uniform float t;\n" +
+        "uniform float speed;\n" +
+        "uniform float dim;\n" +
+        "uniform half3 c0;\n" +
+        "uniform half3 c1;\n" +
+        "uniform half3 c2;\n" +
+        "uniform float2 layer;\n" +
+        "float glow(float2 p, float2 c, float r) {\n" +
+        "  float2 d = p - c;\n" +
+        "  return exp(-dot(d, d) / (r * r));\n" +
+        "}\n" +
+        "float dither(float2 q) {\n" +
+        "  float3 p3 = fract(float3(q.xyx) * 0.1031);\n" +
+        "  p3 += dot(p3, p3.yzx + 33.33);\n" +
+        "  return fract((p3.x + p3.y) * p3.z);\n" +
+        "}\n" +
+        "half4 main(float2 xy) {\n" +
+        "  float2 uv = xy / layer;\n" +
+        "  float a = res.x / res.y;\n" +
+        "  float2 p = float2(uv.x * a, uv.y);\n" +
+        "  float s = t * 0.05 * speed;\n" +
+        "  float g1 = glow(p, float2(a * (0.28 + 0.14 * sin(s * 0.9)), 0.42 + 0.16 * sin(s * 0.7 + 1.0)), 0.55);\n" +
+        "  float g2 = glow(p, float2(a * (0.72 + 0.12 * sin(s * 0.6 + 2.0)), 0.36 + 0.14 * cos(s * 0.8)), 0.45);\n" +
+        "  float g3 = glow(p, float2(a * (0.52 + 0.2 * cos(s * 0.5 + 4.0)), 0.7 + 0.1 * sin(s * 1.1 + 3.0)), 0.4);\n" +
+        "  half3 col = c0;\n" +
+        "  col = mix(col, c1, clamp(g1 * 0.85, 0.0, 1.0));\n" +
+        "  col = mix(col, c2, clamp(g2 * 0.55, 0.0, 1.0));\n" +
+        "  col = mix(col, mix(c1, c2, 0.5), clamp(g3 * 0.5, 0.0, 1.0));\n" +
+        "  float vig = 1.0 - 0.38 * smoothstep(0.35, 1.0, uv.y) - 0.2 * smoothstep(0.45, 0.95, abs(uv.x - 0.5) * 1.6);\n" +
+        "  float scrim = 1.0 - 0.22 * (1.0 - smoothstep(0.0, 0.42, uv.y));\n" +
+        "  col = col * vig * scrim * (1.0 - dim) + (dither(mod(xy, 64.0)) - 0.5) / 255.0;\n" +
+        "  return half4(col, 1.0);\n" +
+        "}\n";
+
+    /**
      * Glass in a rounded-corner shape. The glass background comes from `frost`: the aurora without detail in a 48×27
      * image computed on the CPU (Frost), or the blurred recommendation image (Backdrop), scaled up with linear
      * filtering. That is the frosted glass, at one texture read per pixel (a TV GPU such as the PowerVR BXE-4-32 can't

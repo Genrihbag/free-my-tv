@@ -63,6 +63,19 @@ final class Scene {
         flatRim.setStrokeWidth(1.5f);
     }
 
+    /** The home screen without picks: Shaders.GLOW, soft drifting glows, instead of the aurora. */
+    void useGlow() {
+        if (aurora == null) return;
+        try {
+            RuntimeShader glow = new RuntimeShader(Shaders.GLOW);
+            aurora = glow;
+            auroraPaint.setShader(glow);
+            setSize(w, h);
+        } catch (RuntimeException e) {
+            AppLog.w("glow shader unavailable, keeping the aurora: " + e.getMessage());
+        }
+    }
+
     void setSize(int width, int height) {
         w = Math.max(1, width);
         h = Math.max(1, height);

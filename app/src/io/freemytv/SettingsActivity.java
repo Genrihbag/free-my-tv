@@ -122,7 +122,7 @@ public class SettingsActivity extends Activity {
         private static final int AMBER = 0xFFFFC266, INK = 0xFF1C1C1E;
 
         private final SettingsActivity activity;
-        private final Scene scene = new Scene();
+        private final Scene scene = new Scene(false);   // no glass here: nothing reads the frosted background
         private final Handler handler = new Handler(Looper.getMainLooper());
         private final Spring[] pop = new Spring[12];
         private final List<String> appPkgs = new ArrayList<>(), appLabels = new ArrayList<>();
@@ -178,6 +178,7 @@ public class SettingsActivity extends Activity {
             HomeData.Weather wx = HomeData.get(a).weather;
             Shaders.sky(scene.palette, System.currentTimeMillis(), wx.sunrise, wx.sunset);
             scene.setMotion(0.5f, 0.2f);
+            scene.useGlow();   // the same soft glows as the home screen
             scene.applyPalette();
             setFocusable(true);
             setContentDescription("Free My TV");
@@ -289,7 +290,7 @@ public class SettingsActivity extends Activity {
             if (!running) return;
             boolean moving = busy();
             for (Spring s : pop) moving |= !s.settled();
-            if (moving || SystemClock.uptimeMillis() - lastSky >= 100) invalidate();
+            if (moving || SystemClock.uptimeMillis() - lastSky >= 33) invalidate();
             Choreographer.getInstance().postFrameCallback(this);
         }
 
@@ -361,7 +362,7 @@ public class SettingsActivity extends Activity {
             }
             long up = SystemClock.uptimeMillis();
             float seconds = (up - startedAt) / 1000f;
-            if (up - lastSky >= 100) {
+            if (up - lastSky >= 33) {   // 30 steps a second: the glows drift smoothly
                 lastSky = up;
                 scene.advance(seconds);
             }
