@@ -71,6 +71,8 @@ final class HomeMode {
         // Philco (Homwee/Changhong)
         "com.homwee.aipont",                                                          // AI PONT: promo channels, app downloads
         "com.homwee.help",                                                            // user manual
+        // Xiaomi (Google TV boxes)
+        "com.mitv.tvhome.atv",                                                        // PatchWall: banners, opens itself once online
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */

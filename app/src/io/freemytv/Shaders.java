@@ -346,6 +346,8 @@ final class Shaders {
     }
 
     // Sky phases through the day.
+    /** The glows in the light look (Home and Settings): pale gray-blue, periwinkle and pink. */
+    static final int[] GLOW_LIGHT = {0xEEF0F6, 0xC9D6FA, 0xF1D4EA};
     private static final int[] NIGHT = {0x070B1E, 0x16225A, 0x4B2F8F};
     private static final int[] DAWN = {0x24183F, 0xE89A55, 0xF6D59A};
     private static final int[] DAY = {0x1E57C8, 0x4FB9EC, 0x9EE2EE};

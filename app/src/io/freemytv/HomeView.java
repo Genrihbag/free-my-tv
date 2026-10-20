@@ -144,8 +144,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // layer and a few exp() a pixel. The glass doesn't read them (redrawing it on every step made the TV stutter): it
     // takes the palette's tone instead, which changes only with the sun.
     private static final long GLOW_STEP_MS = 33;
-    /** The glows in the light look: pale gray-blue, periwinkle and pink. */
-    private static final int[] GLOW_LIGHT = {0xEEF0F6, 0xC9D6FA, 0xF1D4EA};
     private final long glowStart = SystemClock.uptimeMillis();
     private long glowAt;
     private boolean nightTarget;
@@ -775,7 +773,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (glowOn()) {
             // The light look: pale glows under the dark text; in between during the day ⇄ night transition.
             float day = 1 - night;
-            if (day > 0.001f) scene.palette.mixTo(GLOW_LIGHT, day);
+            if (day > 0.001f) scene.palette.mixTo(Shaders.GLOW_LIGHT, day);
             scene.setLight(day);
         }
         scene.applyPalette();
