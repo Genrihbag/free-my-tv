@@ -32,8 +32,8 @@ final class Scene {
     // The layer is drawn at a quarter size and scaled up: filtered, its soft shapes stay soft instead of stepping.
     private final Paint layerPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private int w = 1, h = 1, lw = 1, lh = 1;
-    private float speed = 1, baseDim, dim, time;
-    private boolean auroraDirty = true, imageFrost, imageGlass;
+    private float speed = 1, baseDim, dim, time, light;
+    private boolean auroraDirty = true, imageFrost, imageGlass, glow;
     private Bitmap frostImage, glassA, glassB;
     private BitmapShader glassShaderA;
     private final boolean withGlass;
@@ -67,9 +67,10 @@ final class Scene {
     void useGlow() {
         if (aurora == null) return;
         try {
-            RuntimeShader glow = new RuntimeShader(Shaders.GLOW);
-            aurora = glow;
-            auroraPaint.setShader(glow);
+            RuntimeShader shader = new RuntimeShader(Shaders.GLOW);
+            aurora = shader;
+            auroraPaint.setShader(shader);
+            glow = true;
             setSize(w, h);
         } catch (RuntimeException e) {
             AppLog.w("glow shader unavailable, keeping the aurora: " + e.getMessage());
@@ -91,6 +92,12 @@ final class Scene {
         push();
     }
 
+    /** The glows' light look (0 = dark, 1 = light): pale palettes aren't dimmed then, and barely shaded. */
+    void setLight(float light) {
+        this.light = light;
+        push();
+    }
+
     /** speed: 1 on the home screen, less on the screensaver; dim: how much to darken (0 to 1). */
     void setMotion(float speed, float dim) {
         this.speed = speed;
@@ -105,8 +112,9 @@ final class Scene {
     }
 
     private void push() {
-        dim = Math.min(0.6f, baseDim + Math.max(0, Math.min(0.22f, (palette.brightest() - 0.45f) * 0.5f)));
+        dim = Math.min(0.6f, baseDim + Math.max(0, Math.min(0.22f, (palette.brightest() - 0.45f) * 0.5f))) * (1 - light);
         if (aurora == null) return;
+        if (glow) aurora.setFloatUniform("light", light);
         aurora.setFloatUniform("speed", speed);
         aurora.setFloatUniform("dim", dim);
         palette.apply(aurora);

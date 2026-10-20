@@ -433,8 +433,8 @@ public class SettingsActivity extends Activity {
                 c.restore();
                 y += errorLayout.getLineBaseline(errorLayout.getLineCount() - 1) - errorLayout.getLineBaseline(0) + 46 * k;
             }
-            y = drawComparison(c, y);
-            y = drawRecs(c, y + 26 * k);
+            // The picks' status only with a TMDB key (without one there are no picks to report); no comparison.
+            if (Recs.hasKey(getContext())) y = drawRecs(c, y + 26 * k);
             drawNotices(c, y + 40 * k);
         }
 

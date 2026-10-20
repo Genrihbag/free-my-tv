@@ -59,6 +59,8 @@ final class HomeApps {
     static final int INPUTS = 7;
     /** The "Bluetooth" button: the TV's remotes and accessories page, or its Bluetooth settings (see bluetooth()). */
     static final int BLUETOOTH = 8;
+    /** The "Theme" button: Automatic → Light → Dark (the home screen handles it). */
+    static final int THEME = 9;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -69,6 +71,7 @@ final class HomeApps {
         Bitmap tile;        // 16:9 card (apps and specials)
         Bitmap logo;        // colored logo with no background (shelf); null = use the card
         Bitmap logoDark;    // version for a light background (YouTube's white icon), if any
+        Bitmap banner;      // the app's own TV banner, shown in the dark look (OWN_BANNER)
         float logoInk;      // fraction of the logo with ink (thin logos are drawn larger, with the same "weight")
         float logoScale = 1; // size tweak by eye (compact logos need more)
         boolean connected = true;
@@ -139,6 +142,7 @@ final class HomeApps {
             } else {
                 it.key = d[0];
                 it.label = d[1];
+                if (OWN_BANNER.contains(d[0])) it.banner = ownBanner(c, d[2]);
                 it.logo = shelfLogo(c, d[0], d[2], d[4], extract);
                 if (it.logo == null) it.tile = appTile(c, d[0], d[2], 0xFF000000 | Integer.parseInt(d[3], 16));
                 if (it.logo != null) it.logoInk = ink(it.logo);
@@ -185,7 +189,7 @@ final class HomeApps {
 
     // MARK: - Top buttons (the round ones at the top right)
 
-    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings", TOP_BLUETOOTH = "bluetooth";
+    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings", TOP_BLUETOOTH = "bluetooth", TOP_THEME = "theme";
     /** From the corner leftward (the first one sits at the right edge): Settings, HDMI Inputs, Live TV. */
     static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_SETTINGS, TOP_INPUTS, TOP_LIVE));
     static final int MAX_TOP = 5;
@@ -216,6 +220,7 @@ final class HomeApps {
             case TOP_INPUTS: return action(INPUTS, TOP_INPUTS, Ui.tr("Entradas HDMI", "HDMI Inputs"), "hdmi");
             case TOP_SETTINGS: return action(SETTINGS, TOP_SETTINGS, Ui.tr("Configurações", "Settings"), "settings");
             case TOP_BLUETOOTH: return action(BLUETOOTH, TOP_BLUETOOTH, "Bluetooth", "bluetooth");
+            case TOP_THEME: return action(THEME, TOP_THEME, Ui.tr("Tema", "Theme"), "theme");
             default: return null;
         }
     }
@@ -226,6 +231,7 @@ final class HomeApps {
         for (String key : TOP_DEFAULT) out.add(new String[] {key, topBuiltIn(key).label});
         // Not a default: offered only where the TV has a screen for it.
         if (bluetooth(c) != null) out.add(new String[] {TOP_BLUETOOTH, topBuiltIn(TOP_BLUETOOTH).label});
+        out.add(new String[] {TOP_THEME, topBuiltIn(TOP_THEME).label});
         return out;
     }
 
@@ -932,6 +938,23 @@ final class HomeApps {
     }
 
     /** The app's official TV art (the Android TV banner), at the highest density the app has. */
+    /**
+     * Apps whose shelf tile is their own TV banner in the dark look, as the app ships it: YouTube's (red button, dark
+     * wordmark on light gray) reads as YouTube there. On the light glass it vanishes, so the light look keeps the logo
+     * on a dark card.
+     */
+    private static final Set<String> OWN_BANNER = Collections.singleton("youtube");
+
+    private static synchronized Bitmap ownBanner(Context c, String pkg) {
+        String key = "banner:" + pkg;
+        if (!TILES.containsKey(key)) {
+            Bitmap b = bannerTile(c, pkg);
+            if (b != null) b.setHasMipMap(true);
+            TILES.put(key, b);
+        }
+        return TILES.get(key);
+    }
+
     private static Bitmap bannerTile(Context c, String pkg) {
         PackageManager pm = c.getPackageManager();
         Drawable d = null;
