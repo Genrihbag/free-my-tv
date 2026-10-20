@@ -73,6 +73,13 @@ final class HomeMode {
         "com.homwee.help",                                                            // user manual
         // Xiaomi (Google TV boxes)
         "com.mitv.tvhome.atv",                                                        // PatchWall: banners, opens itself once online
+        "com.mitv.tvhome.michannel", "com.mitv.tvhome.oemtab",                        // PatchWall's rows, its tab in Google's home
+        "com.mitv.tvhome.mitvplus", "com.xm.webcontent",                              // Mi TV+ (channels with ads), promo pages
+        "com.miui.tv.analytics", "com.xiaomi.statistic",                              // telemetry
+        "com.xiaomi.mimusic2",                                                        // Mi Music
+        // Google and partners, nothing on a TV uses
+        "com.google.android.videos", "com.google.android.feedback",                   // Google TV (Play Movies), feedback reports
+        "com.netflix.tokenmanager", "com.android.printspooler",                       // Netflix's partner token, printing
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
